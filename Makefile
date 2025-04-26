@@ -13,14 +13,14 @@ help: Makefile
 ## setup: install needed packages
 .PHONY: setup
 setup:
+	@brew install watchexec
 	@go install github.com/vektra/mockery/v2@v2.50.0
 
 
 ## start: build and run local project
 .PHONY: start
 start:
-	go run main.go
-	
+	watchexec -r -e go --wrap-process session -- "go run ./main.go"
 
 ## mock: generate the mocks
 .PHONY: mock
