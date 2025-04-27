@@ -1,8 +1,12 @@
-package ui
+package tui
 
 import (
+	"net/http"
+
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/felipefbs/lazy-request/tui/keys"
 )
 
 var (
@@ -21,15 +25,16 @@ type Model struct {
 	width    int
 	height   int
 	focus    int
-	tree     *TreeSection
+	tree     TreeSection
 	request  *RequestSection
 	response *ResponseSection
+	list     []*http.Request
 }
 
-func NewModel() Model {
+func New(list []*http.Request) Model {
 	return Model{
 		focus:    0,
-		tree:     newTreeSection(),
+		tree:     newTreeSection(list),
 		request:  newRequestSection(),
 		response: newResponseSection(),
 	}
@@ -41,33 +46,36 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.height = msg.Height
+		m.width = msg.Width
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
+		switch {
+		case key.Matches(msg, keys.Quit):
 			return m, tea.Quit
-		case "l":
+		case key.Matches(msg, keys.NextPane):
 			m.focus = m.focus + 1
 			if m.focus > 2 {
 				m.focus = 0
 			}
-		case "h":
+		case key.Matches(msg, keys.PrevPane):
 			m.focus = m.focus - 1
 			if m.focus < 0 {
 				m.focus = 2
 			}
-		case "ctrl+s":
+		case key.Matches(msg, keys.ToggleExplorer):
 			m.tree.Toggle()
 		}
-	case tea.WindowSizeMsg:
-		m.height = msg.Height - 2
-		m.width = msg.Width
 	}
 
 	m.tree.SetFocus(m.focus == 0)
 	m.request.SetFocus(m.focus == 1)
 	m.response.SetFocus(m.focus == 2)
 
-	return m, nil
+	var cmd tea.Cmd
+	m.tree, cmd = m.tree.Update(msg)
+
+	return m, cmd
 }
 
 func (m Model) RenderSection(curr int, strs ...string) string {
@@ -81,7 +89,7 @@ func (m Model) RenderSection(curr int, strs ...string) string {
 func (m Model) View() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Bottom,
-		m.tree.View(m.width, m.height),
+		m.tree.View(),
 		lipgloss.JoinVertical(lipgloss.Bottom,
 			m.request.View(m),
 			m.response.View(m),
