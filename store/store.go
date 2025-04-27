@@ -1,40 +1,31 @@
 package store
 
 import (
-	"errors"
-	"net/http"
+	"io/fs"
+	"path/filepath"
 
 	"github.com/felipefbs/lazy-request/parser"
 )
 
 type Store struct {
-	parser parser.Parser
+	path     string
+	requests []parser.RequestAttrs
 }
 
-func New(p parser.Parser) *Store {
-	return &Store{p}
+func New(path string) *Store {
+	return &Store{path: path}
 }
 
-func (s *Store) GetRequest() (*http.Request, error) {
-	request, err := s.parser.Parse()
-	if err != nil {
-		return &http.Request{}, errors.New("error reading requisition")
-	}
-	return request, nil
-}
+func (s *Store) ReadDirectory() ([]parser.RequestAttrs, error) {
+	httpFiles := make([]string, 0, 10)
 
-func (s *Store) ExecuteRequest() (http.Response, error) {
-	request, err := s.GetRequest()
-	if err != nil {
-		return http.Response{}, err
-	}
+	filepath.WalkDir(s.path, func(path string, d fs.DirEntry, err error) error {
+		if !d.IsDir() && filepath.Ext(path) == ".http" {
+			httpFiles = append(httpFiles, path)
+		}
 
-	c := http.DefaultClient
+		return nil
+	})
 
-	res, err := c.Do(request)
-	if err != nil {
-		return http.Response{}, err
-	}
-
-	return *res, nil
+	return nil, nil
 }
