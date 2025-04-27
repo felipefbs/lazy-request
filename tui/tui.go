@@ -27,7 +27,7 @@ func New(list []*http.Request) Model {
 	return Model{
 		focus:    0,
 		explorer: explorer.New(list),
-		request:  request.New(list[0]),
+		request:  request.New(list[1]),
 		response: response.New(),
 	}
 }
