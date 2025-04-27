@@ -1,0 +1,10 @@
+### Create a new item
+POST http://192.168.3.46:4000/todoitems
+Content-Type: application/json
+ 
+{
+  "id": "5",
+  "name":"walk dog",
+  "isComplete":false
+}
+ 

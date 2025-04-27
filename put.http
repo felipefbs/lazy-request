@@ -1,0 +1,9 @@
+### Update item
+PUT http://192.168.3.46:4000/todoitems/1
+Content-Type: application/json
+ 
+{
+  "id": 1,
+  "name":"walk dog",
+  "isComplete": true
+}
