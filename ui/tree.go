@@ -1,47 +1,42 @@
 package ui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"github.com/charmbracelet/lipgloss"
+)
 
-type TreeModel struct {
-	width  int
-	height int
-	show   bool
-	focus  bool
+type TreeSection struct {
+	show  bool
+	focus bool
 }
 
-func newTreeModel() *TreeModel {
-	return &TreeModel{
+func newTreeSection() *TreeSection {
+	return &TreeSection{
 		show:  true,
 		focus: true,
 	}
 }
 
-func (m *TreeModel) SetDimention(w, h int) {
-	m.width = w
-	m.height = h
-}
-
-func (m *TreeModel) Toggle() {
+func (m *TreeSection) Toggle() {
 	m.show = !m.show
 }
 
-func (m TreeModel) IsOpen() bool {
+func (m TreeSection) IsOpen() bool {
 	return m.show
 }
 
-func (m *TreeModel) SetFocus(focus bool) {
+func (m *TreeSection) SetFocus(focus bool) {
 	m.focus = focus
 }
 
-func (m TreeModel) View() string {
+func (m TreeSection) View(width, height int) string {
 	if !m.show {
 		return ""
 	}
 
 	if m.focus {
 		return lipgloss.NewStyle().
-			Height(m.height).
-			Width(int(float32(m.width)*0.3)).
+			Height(height).
+			Width(int(float32(width)*0.3)).
 			Align(lipgloss.Top, lipgloss.Top).
 			BorderStyle(lipgloss.NormalBorder()).
 			BorderForeground(lipgloss.Color("69")).
@@ -49,8 +44,8 @@ func (m TreeModel) View() string {
 	}
 
 	return lipgloss.NewStyle().
-		Height(m.height).
-		Width(int(float32(m.width)*0.3)).
+		Height(height).
+		Width(int(float32(width)*0.3)).
 		Align(lipgloss.Top, lipgloss.Left).
 		BorderStyle(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("238")).
