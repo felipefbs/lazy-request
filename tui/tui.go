@@ -6,27 +6,16 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/felipefbs/lazy-request/tui/explorer"
 	"github.com/felipefbs/lazy-request/tui/keys"
-)
-
-var (
-	modelStyle = lipgloss.NewStyle().
-			Align(lipgloss.Center, lipgloss.Center).
-			BorderStyle(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("238"))
-
-	focusedModelStyle = lipgloss.NewStyle().
-				Align(lipgloss.Center, lipgloss.Center).
-				BorderStyle(lipgloss.NormalBorder()).
-				BorderForeground(lipgloss.Color("69"))
 )
 
 type Model struct {
 	width    int
 	height   int
 	focus    int
-	tree     TreeSection
-	request  *RequestSection
+	explorer explorer.Explorer
+	request  RequestSection
 	response *ResponseSection
 	list     []*http.Request
 }
@@ -34,7 +23,7 @@ type Model struct {
 func New(list []*http.Request) Model {
 	return Model{
 		focus:    0,
-		tree:     newTreeSection(list),
+		explorer: explorer.New(list),
 		request:  newRequestSection(),
 		response: newResponseSection(),
 	}
@@ -64,42 +53,33 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.focus = 2
 			}
 		case key.Matches(msg, keys.ToggleExplorer):
-			m.tree.Toggle()
+			m.explorer.Toggle()
 		}
 	}
 
-	m.tree.SetFocus(m.focus == 0)
+	m.explorer.SetFocus(m.focus == 0)
 	m.request.SetFocus(m.focus == 1)
 	m.response.SetFocus(m.focus == 2)
 
+	var cmds []tea.Cmd
 	var cmd tea.Cmd
-	m.tree, cmd = m.tree.Update(msg)
 
-	return m, cmd
-}
+	m.explorer, cmd = m.explorer.Update(msg)
+	cmds = append(cmds, cmd)
 
-func (m Model) RenderSection(curr int, strs ...string) string {
-	if m.focus == curr {
-		return focusedModelStyle.Render(strs...)
-	} else {
-		return modelStyle.Render(strs...)
-	}
+	m.request, cmd = m.request.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return m, tea.Sequence(cmds...)
 }
 
 func (m Model) View() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Bottom,
-		m.tree.View(),
+		m.explorer.View(),
 		lipgloss.JoinVertical(lipgloss.Bottom,
-			m.request.View(m),
+			m.request.View(),
 			m.response.View(m),
 		),
 	)
-}
-
-type Screen struct {
-	width   int
-	height  int
-	columns int
-	rows    int
 }

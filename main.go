@@ -16,6 +16,9 @@ func main() {
 
 	list := []*http.Request{
 		req,
+		req,
+		req,
+		req,
 	}
 
 	p := tea.NewProgram(tui.New(list), tea.WithAltScreen())

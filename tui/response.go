@@ -20,7 +20,7 @@ func (s ResponseSection) View(m Model) string {
 	height := m.height / 2
 
 	width := m.width
-	if m.tree.IsOpen() {
+	if m.explorer.IsOpen() {
 		width -= int(float32(m.width) * 0.3)
 	}
 	width -= 4

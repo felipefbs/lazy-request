@@ -1,14 +1,14 @@
-package tui
+package styles
 
 import "github.com/charmbracelet/lipgloss"
 
 var (
-	pane = lipgloss.NewStyle().
+	Pane = lipgloss.NewStyle().
 		Align(lipgloss.Top, lipgloss.Top).
 		BorderStyle(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("238"))
 
-	focusedPane = lipgloss.NewStyle().
-			Inherit(pane).
+	FocusedPane = lipgloss.NewStyle().
+			Inherit(Pane).
 			BorderForeground(lipgloss.Color("69"))
 )

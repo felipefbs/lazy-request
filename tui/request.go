@@ -1,45 +1,58 @@
 package tui
 
 import (
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/felipefbs/lazy-request/tui/styles"
 )
 
 type RequestSection struct {
-	focus bool
+	width  int
+	height int
+	focus  bool
 }
 
 func (s *RequestSection) SetFocus(focus bool) {
 	s.focus = focus
 }
 
-func newRequestSection() *RequestSection {
-	return &RequestSection{}
+func newRequestSection() RequestSection {
+	return RequestSection{}
 }
 
-func (s RequestSection) View(m Model) string {
-	height := (m.height / 2) - 1
+func (m RequestSection) Init() tea.Cmd {
+	return nil
+}
+
+func (m RequestSection) Update(msg tea.Msg) (RequestSection, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.height = msg.Height
+		m.width = msg.Width
+	}
+
+	return m, nil
+}
+
+func (m RequestSection) View() string {
+	w, h := styles.Pane.GetFrameSize()
+	height := (m.height / 2) - h
 
 	width := m.width
-	if m.tree.IsOpen() {
-		width -= int(float32(m.width) * 0.3)
-	}
-	width -= 4
+	width -= int(float32(m.width)*0.3) - w
+	width -= w * 2
 
-	if s.focus {
+	if m.focus {
 		return lipgloss.NewStyle().
+			Inherit(styles.FocusedPane).
 			Height(height).
 			Width(width).
-			Align(lipgloss.Top, lipgloss.Top).
-			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(lipgloss.Color("69")).
 			Render("Request")
 	}
 
 	return lipgloss.NewStyle().
+		Inherit(styles.Pane).
 		Height(height).
 		Width(width).
-		Align(lipgloss.Top, lipgloss.Left).
-		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("238")).
 		Render("Request")
 }
