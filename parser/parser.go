@@ -10,11 +10,12 @@ import (
 
 type RequestAttrs struct {
 	Name    string
+	Path    string
 	Request *http.Request
 	Body    []byte
 }
 
-func ParseHTTP(input io.Reader) (*RequestAttrs, error) {
+func ParseHTTP(input io.Reader, path string) (*RequestAttrs, error) {
 	scanner := bufio.NewScanner(input)
 
 	var (
@@ -64,14 +65,14 @@ func ParseHTTP(input io.Reader) (*RequestAttrs, error) {
 		return nil, err
 	}
 
-	return createRequest(requestName, methodLine, headers, bodyBuffer.String())
+	return createRequest(requestName, path, methodLine, headers, bodyBuffer.String())
 }
 
 func isHeaderLine(line string) bool {
 	return strings.Contains(line, ":")
 }
 
-func createRequest(requestName, methodLine string, headers []string, body string) (*RequestAttrs, error) {
+func createRequest(requestName, path, methodLine string, headers []string, body string) (*RequestAttrs, error) {
 	if methodLine == "" {
 		return nil, errors.New("método HTTP não encontrado na requisição")
 	}
@@ -102,6 +103,7 @@ func createRequest(requestName, methodLine string, headers []string, body string
 
 	response := &RequestAttrs{
 		Name:    requestName,
+		Path:    path,
 		Request: httpReq,
 		Body:    []byte(body),
 	}
