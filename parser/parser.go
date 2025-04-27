@@ -1,77 +1,120 @@
 package parser
 
 import (
-	"fmt"
+	"bufio"
+	"errors"
 	"io"
 	"net/http"
+	"strings"
 )
 
-type Parser struct {
-	s   *Scanner
-	buf struct {
-		tok Token  // last read token
-		lit string // last read literal
-		n   int    // buffer size (max=1)
+type RequestAttrs struct {
+	Name    string
+	Request *http.Request
+	Body    []byte
+}
+
+func ParseHTTP(input io.Reader) (*RequestAttrs, error) {
+	scanner := bufio.NewScanner(input)
+
+	var (
+		methodLine    string
+		headers       []string
+		bodyBuffer    strings.Builder
+		isReadingBody bool
+		requestName   string
+	)
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "###") {
+			requestName = strings.TrimSpace(strings.TrimPrefix(line, "###"))
+		} else if isAMethod(line) {
+			requestName = line
+		}
+
+		if isReadingBody {
+			bodyBuffer.WriteString(line)
+			bodyBuffer.WriteString("\n")
+			continue
+		}
+
+		if len(strings.TrimSpace(line)) == 0 {
+			isReadingBody = true
+			continue
+		}
+
+		if methodLine == "" && (strings.HasPrefix(line, "GET") ||
+			strings.HasPrefix(line, "POST") ||
+			strings.HasPrefix(line, "PUT") ||
+			strings.HasPrefix(line, "DELETE") ||
+			strings.HasPrefix(line, "PATCH") ||
+			strings.HasPrefix(line, "HEAD") ||
+			strings.HasPrefix(line, "OPTIONS")) {
+			methodLine = line
+			continue
+		}
+
+		if isHeaderLine(line) {
+			headers = append(headers, line)
+		}
 	}
-}
 
-// NewParser returns a new instance of Parser.
-func NewParser(r io.Reader) *Parser {
-	return &Parser{s: NewScanner(r)}
-}
-
-func (p *Parser) scan() (tok Token, lit string) {
-	// If we have a token on the buffer, then return it.
-	if p.buf.n != 0 {
-		p.buf.n = 0
-		return p.buf.tok, p.buf.lit
+	if err := scanner.Err(); err != nil {
+		return nil, err
 	}
 
-	// Otherwise read the next token from the scanner.
-	tok, lit = p.s.Scan()
-
-	// Save it to the buffer in case we unscan later.
-	p.buf.tok, p.buf.lit = tok, lit
-
-	return tok, lit
+	return createRequest(requestName, methodLine, headers, bodyBuffer.String())
 }
 
-// unscan pushes the previously read token back onto the buffer.
-func (p *Parser) unscan() { p.buf.n = 1 }
+func isHeaderLine(line string) bool {
+	return strings.Contains(line, ":")
+}
 
-func (p *Parser) scanIgnoreWhitespace() (tok Token, lit string) {
-	tok, lit = p.scan()
-	if tok == WS {
-		tok, lit = p.scan()
+func createRequest(requestName, methodLine string, headers []string, body string) (*RequestAttrs, error) {
+	if methodLine == "" {
+		return nil, errors.New("método HTTP não encontrado na requisição")
 	}
-	return
+
+	parts := strings.SplitN(methodLine, " ", 2)
+	if len(parts) < 2 {
+		return nil, errors.New("formato inválido na linha do método HTTP")
+	}
+
+	method := parts[0]
+	urlPath := strings.TrimSpace(parts[1])
+
+	bodyReader := strings.NewReader(body)
+
+	httpReq, err := http.NewRequest(method, urlPath, bodyReader)
+	if err != nil {
+		return nil, errors.New("falha ao criar a requisição HTTP: " + err.Error())
+	}
+
+	for _, header := range headers {
+		parts := strings.SplitN(header, ":", 2)
+		if len(parts) == 2 {
+			headerName := strings.TrimSpace(parts[0])
+			headerValue := strings.TrimSpace(parts[1])
+			httpReq.Header.Add(headerName, headerValue)
+		}
+	}
+
+	response := &RequestAttrs{
+		Name:    requestName,
+		Request: httpReq,
+		Body:    []byte(body),
+	}
+
+	return response, nil
 }
 
-func (p *Parser) Parse() (*http.Request, error) {
-	var method string
-
-	t, lit := p.scanIgnoreWhitespace()
-	switch t {
-	case GET:
-		method = http.MethodGet
-	case PATCH:
-		method = http.MethodPatch
+func isAMethod(line string) bool {
+	s := strings.Split(line, " ")
+	switch s[0] {
+	case http.MethodGet, http.MethodDelete, http.MethodPatch, http.MethodPost, http.MethodPut:
+		return true
 	default:
-		return nil, fmt.Errorf("expected a method but got: %v", lit)
+		return false
 	}
-
-	var path string
-	for {
-		t, lit := p.scanIgnoreWhitespace()
-		if t == EOF {
-			break
-		}
-		if t < IDENT {
-			return nil, fmt.Errorf("illegal literal: %v", lit)
-		}
-
-		path += lit
-	}
-
-	return http.NewRequest(method, path, nil)
 }
