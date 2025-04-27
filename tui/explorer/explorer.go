@@ -74,9 +74,8 @@ func (m Explorer) View() string {
 		return ""
 	}
 
-	w, h := styles.Pane.GetFrameSize()
-	height := m.height - h
-	width := int(float32(m.width)*0.3) - w
+	height := m.height - styles.Frame.Y
+	width := int(float32(m.width)*0.3) - styles.Frame.X
 
 	p := lipgloss.NewStyle().
 		Height(height).

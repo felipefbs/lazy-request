@@ -1,2 +1,0 @@
-### Delete item
-DELETE http://192.168.3.46:4000/todoitems/1

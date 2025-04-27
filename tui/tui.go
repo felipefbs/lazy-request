@@ -8,24 +8,27 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/felipefbs/lazy-request/tui/explorer"
 	"github.com/felipefbs/lazy-request/tui/keys"
+	"github.com/felipefbs/lazy-request/tui/request"
+	"github.com/felipefbs/lazy-request/tui/response"
 )
 
 type Model struct {
 	width    int
 	height   int
 	focus    int
-	explorer explorer.Explorer
-	request  RequestSection
-	response *ResponseSection
 	list     []*http.Request
+	selected *http.Request
+	explorer explorer.Explorer
+	request  request.Request
+	response response.Response
 }
 
 func New(list []*http.Request) Model {
 	return Model{
 		focus:    0,
 		explorer: explorer.New(list),
-		request:  newRequestSection(),
-		response: newResponseSection(),
+		request:  request.New(list[0]),
+		response: response.New(),
 	}
 }
 
@@ -70,6 +73,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	m.request, cmd = m.request.Update(msg)
 	cmds = append(cmds, cmd)
 
+	m.response, cmd = m.response.Update(msg)
+	cmds = append(cmds, cmd)
+
 	return m, tea.Sequence(cmds...)
 }
 
@@ -79,7 +85,7 @@ func (m Model) View() string {
 		m.explorer.View(),
 		lipgloss.JoinVertical(lipgloss.Bottom,
 			m.request.View(),
-			m.response.View(m),
+			m.response.View(),
 		),
 	)
 }
